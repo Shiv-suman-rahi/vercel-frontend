@@ -229,8 +229,10 @@ function WatchPartyPage() {
   const [toastQueue, setToastQueue] = useState([]);
   const [draftVideoUrl, setDraftVideoUrl] = useState('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   const [currentUserId, setCurrentUserId] = useState(localStorage.getItem('watchPartyUserId') || null);
-  const [currentRole, setCurrentRole] = useState('PARTICIPANT');
+  const [currentRole, setCurrentRole] = useState('participant');
   const [roomError, setRoomError] = useState('');
+  const [roomClosed, setRoomClosed] = useState(false);
+  const [closedByCurrentUser, setClosedByCurrentUser] = useState(false);
   const isRemoteUpdateRef = useRef(false);
 
   const pushToast = (message, type = 'info') => {
@@ -268,7 +270,7 @@ function WatchPartyPage() {
     roomSocket.on('session', ({ userId, role }) => {
       setCurrentUserId(userId);
       localStorage.setItem('watchPartyUserId', userId);
-      setCurrentRole(role);
+      setCurrentRole(String(role || '').trim().toLowerCase());
       pushToast(`Joined room ${roomId}`, 'success');
     });
 
@@ -277,16 +279,16 @@ function WatchPartyPage() {
       if (nextRoom?.participants) {
         const me = nextRoom.participants.find((participant) => participant.userId === currentUserId || participant.userId === localStorage.getItem('watchPartyUserId'));
         if (me) {
-          setCurrentRole(me.role);
+          setCurrentRole(String(me.role || '').trim().toLowerCase());
         }
       }
     });
 
     roomSocket.on('role_assigned', ({ userId, role }) => {
       if (userId === currentUserId || userId === localStorage.getItem('watchPartyUserId')) {
-        setCurrentRole(role);
+        setCurrentRole(String(role || '').trim().toLowerCase());
       }
-      pushToast(`Role updated to ${role}`, 'success');
+      pushToast(`Role updated to ${String(role || '').trim().toLowerCase()}`, 'success');
     });
 
     roomSocket.on('participant_removed', ({ username }) => {
@@ -302,17 +304,31 @@ function WatchPartyPage() {
       pushToast(`${username} left the room.`, 'info');
     });
 
+    roomSocket.on('user_offline', ({ username }) => {
+      pushToast(`${username} went offline.`, 'info');
+    });
+
+    roomSocket.on('room_closed', ({ hostId, message }) => {
+      const activeUserId = localStorage.getItem('watchPartyUserId');
+      setClosedByCurrentUser(Boolean(hostId && hostId === activeUserId));
+      setRoomClosed(true);
+      setRoom(null);
+      roomSocket.disconnect();
+      pushToast(message || 'The host closed this watch party.', 'info');
+    });
+
     return () => roomSocket.disconnect();
   }, [navigate, roomId]);
 
   const participantList = room?.participants || [];
   const currentParticipant = participantList.find((participant) => participant.userId === currentUserId || participant.userId === localStorage.getItem('watchPartyUserId')) || null;
-  const canControl = currentParticipant?.role === 'HOST' || currentParticipant?.role === 'MODERATOR';
-  const canManage = currentParticipant?.role === 'HOST';
+  const normalizedCurrentRole = String(currentParticipant?.role || currentRole || '').trim().toLowerCase();
+  const canControl = normalizedCurrentRole === 'host' || normalizedCurrentRole === 'moderator';
+  const canManage = normalizedCurrentRole === 'host';
   const hostId = room?.hostId;
 
   const roomUrl = buildRoomLink(roomId);
-  const videoId = room?.videoId || 'dQw4w9WgXcQ';
+  const videoId = room?.videoId;
 
   useEffect(() => {
     if (!player || !room) return;
@@ -355,6 +371,13 @@ function WatchPartyPage() {
     navigate('/');
   }
 
+  function handleCloseRoom() {
+    if (!socket || !canManage) return;
+    if (window.confirm('Close this room for everyone? This cannot be undone.')) {
+      socket.emit('close_room', { roomId });
+    }
+  }
+
   function handleVideoReady(playerInstance) {
     setPlayer(playerInstance);
     playerInstance.seekTo(Number(room?.currentTime || 0), true);
@@ -362,7 +385,20 @@ function WatchPartyPage() {
 
   function handlePlayerStateChange(event) {
     const playerState = event.data;
-    if (isRemoteUpdateRef.current || !socket) {
+    if (isRemoteUpdateRef.current || !socket || !room) {
+      return;
+    }
+
+    if (!canControl && (playerState === 1 || playerState === 2)) {
+      isRemoteUpdateRef.current = true;
+      if (room.playState === 'PLAYING') {
+        player?.playVideo();
+      } else {
+        player?.pauseVideo();
+      }
+      setTimeout(() => {
+        isRemoteUpdateRef.current = false;
+      }, 250);
       return;
     }
 
@@ -395,7 +431,7 @@ function WatchPartyPage() {
 
   function handleRoleChange(userId, nextRole) {
     if (!socket || !canManage) return;
-    socket.emit('assign_role', { roomId, userId, role: nextRole });
+    socket.emit('assign_role', { roomId, userId, role: String(nextRole || '').trim().toLowerCase() });
   }
 
   function handleRemoveParticipant(userId) {
@@ -405,32 +441,65 @@ function WatchPartyPage() {
 
   const playerDuration = room?.duration || 1000;
 
+  if (roomClosed) {
+    return (
+      <div className="page-shell room-page">
+        <section className="room-closed-card" role="status">
+          <span className="room-closed-card__icon" aria-hidden="true">✓</span>
+          <p className="eyebrow">Watch party ended</p>
+          <h1>{closedByCurrentUser ? 'You closed the room' : 'The host closed the room'}</h1>
+          <p>
+            {closedByCurrentUser
+              ? 'This room is now closed for everyone.'
+              : 'This room is now closed. Thanks for watching together!'}
+          </p>
+          <button type="button" className="primary-btn" onClick={() => navigate('/')}>Back to home</button>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="page-shell room-page">
       <Toast toasts={toastQueue} onDismiss={(id) => setToastQueue((old) => old.filter((toast) => toast.id !== id))} />
 
-      <RoomHeader roomId={roomId} connectionStatus={status} onCopyLink={copyInviteLink} onLeaveRoom={handleLeaveRoom} />
+      <RoomHeader
+        roomId={roomId}
+        connectionStatus={status}
+        onCopyLink={copyInviteLink}
+        onLeaveRoom={handleLeaveRoom}
+        isHost={canManage}
+        onCloseRoom={handleCloseRoom}
+      />
 
       <div className="room-layout">
         <main className="main-panel">
           <div className="player-card">
-            <YouTubePlayer videoId={videoId} onReady={handleVideoReady} onStateChange={handlePlayerStateChange} />
+            {videoId ? (
+              <YouTubePlayer videoId={videoId} onReady={handleVideoReady} onStateChange={handlePlayerStateChange} />
+            ) : (
+              <div className="youtube-player-loading" role="status">
+                {room ? 'Waiting for the host to choose a video...' : 'Connecting to the room...'}
+              </div>
+            )}
           </div>
 
           <div className="video-info-card">
             <div className="video-meta-header">
               <div>
                 <p className="eyebrow">Now playing</p>
-                <h2>{room?.videoId ? 'YouTube Video' : 'Waiting for host...'}</h2>
+                <h2>{!room ? 'Connecting to room...' : room.videoId ? 'YouTube Video' : 'Waiting for host...'}</h2>
               </div>
               <Badge role={currentRole} />
             </div>
 
             <div className="controls-block">
-              <div className="controls-row">
-                <button type="button" className="primary-btn" disabled={!canControl} onClick={() => socket && socket.emit('play', { roomId })}>Play</button>
-                <button type="button" className="secondary-btn" disabled={!canControl} onClick={() => socket && socket.emit('pause', { roomId })}>Pause</button>
-              </div>
+              {canControl && (
+                <div className="controls-row">
+                  <button type="button" className="primary-btn" onClick={() => socket && socket.emit('play', { roomId })}>Play</button>
+                  <button type="button" className="secondary-btn" onClick={() => socket && socket.emit('pause', { roomId })}>Pause</button>
+                </div>
+              )}
 
               <div className="seek-block">
                 <span>{formatTime(room?.currentTime || 0)}</span>

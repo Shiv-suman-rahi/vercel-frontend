@@ -34,7 +34,7 @@ export default function ParticipantList({ participants = [], currentUserId, onAs
 
                 {canManageThisParticipant && (
                   <div className="participant-actions">
-                    <button type="button" onClick={() => onAssignRole(participant.userId, 'MODERATOR')}>
+                    <button type="button" onClick={() => onAssignRole(participant.userId, 'moderator')}>
                       Make Moderator
                     </button>
                     <button type="button" className="danger" onClick={() => onRemoveParticipant(participant.userId)}>
