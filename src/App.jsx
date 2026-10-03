@@ -8,8 +8,7 @@ import ParticipantList from './components/ParticipantList';
 import YouTubePlayer from './components/YouTubePlayer';
 import Toast from './components/Toast';
 import Badge from './components/Badge';
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+import { backendUrl } from './config';
 
 function HomePage() {
   const navigate = useNavigate();

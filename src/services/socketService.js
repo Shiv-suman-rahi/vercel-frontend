@@ -1,5 +1,7 @@
+import { backendUrl } from '../config';
+
 export async function createRoomRequest(username) {
-  const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/rooms`, {
+  const response = await fetch(`${backendUrl}/api/rooms`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username }),

@@ -18,6 +18,5 @@ npm run build
 
 ## Notes
 
-- The app expects the backend to be running at `http://localhost:3000` by default.
+- The production fallback backend is `https://render-backend-2-uot0.onrender.com`. For local development, set `VITE_BACKEND_URL=http://localhost:3000` in your frontend `.env`.
 - Full setup and architecture details are documented in the project root README and ARCHITECTURE.md files.
-
