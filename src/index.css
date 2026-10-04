@@ -95,6 +95,7 @@ img {
   border-radius: 28px;
   background: linear-gradient(135deg, rgba(17, 24, 39, 0.9), rgba(15, 23, 42, 0.75));
   box-shadow: var(--shadow);
+  animation: rise-in 650ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 
 .hero-copy {
@@ -182,6 +183,7 @@ button:disabled {
   background: rgba(25, 31, 46, 0.9);
   box-shadow: var(--shadow);
   overflow: hidden;
+  animation: float-in 700ms 120ms ease-out both, gentle-float 6s 900ms ease-in-out infinite;
 }
 
 .preview-header {
@@ -263,6 +265,28 @@ button:disabled {
   border: 1px solid var(--card-border);
   border-radius: 20px;
   background: rgba(15, 23, 42, 0.76);
+  animation: rise-in 500ms ease-out both;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(139, 92, 246, 0.45);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.3);
+}
+
+.feature-card:nth-child(2) { animation-delay: 70ms; }
+.feature-card:nth-child(3) { animation-delay: 140ms; }
+.feature-card:nth-child(4) { animation-delay: 210ms; }
+.feature-card:nth-child(5) { animation-delay: 280ms; }
+.feature-card:nth-child(6) { animation-delay: 350ms; }
+
+.form-card,
+.room-header,
+.main-panel,
+.participants-panel,
+.room-closed-card {
+  animation: rise-in 500ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 
 .feature-icon {
@@ -709,6 +733,7 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  animation: toast-in 220ms ease-out both;
 }
 
 .toast__content {
@@ -738,6 +763,55 @@ button:disabled {
 .empty-state.compact {
   color: var(--muted);
   padding: 10px 8px 0;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media (max-width: 960px) {

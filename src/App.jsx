@@ -359,8 +359,42 @@ function WatchPartyPage() {
     }
   }, [player, room]);
 
-  function copyInviteLink() {
-    navigator.clipboard.writeText(roomUrl).then(() => pushToast('Room link copied!', 'success'));
+  async function copyInviteLink() {
+    try {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(roomUrl);
+          pushToast('Room link copied!', 'success');
+          return;
+        } catch {
+          // Fall through to the legacy copy method when clipboard permissions are unavailable.
+        }
+      }
+
+      const textArea = document.createElement('textarea');
+      textArea.value = roomUrl;
+      textArea.setAttribute('readonly', '');
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      let copied = false;
+      try {
+        copied = document.execCommand('copy');
+      } finally {
+        textArea.remove();
+      }
+
+      if (!copied) {
+        throw new Error('The browser did not allow copying to the clipboard.');
+      }
+
+      pushToast('Room link copied!', 'success');
+    } catch {
+      pushToast('Could not copy the invite link. Please copy the room URL from your address bar.', 'error');
+    }
   }
 
   function handleLeaveRoom() {
