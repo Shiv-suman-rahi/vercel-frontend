@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeUpdate, className }) {
+  const shellRef = useRef(null);
   const containerRef = useRef(null);
   const playerRef = useRef(null);
+  const timeUpdateIntervalRef = useRef(null);
   const onReadyRef = useRef(onReady);
   const onStateChangeRef = useRef(onStateChange);
   const onTimeUpdateRef = useRef(onTimeUpdate);
@@ -10,12 +12,22 @@ export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeU
   const loadedVideoIdRef = useRef(null);
   const playerReadyRef = useRef(false);
   const playerCreatedVideoIdRef = useRef(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     onReadyRef.current = onReady;
     onStateChangeRef.current = onStateChange;
     onTimeUpdateRef.current = onTimeUpdate;
   });
+
+  useEffect(() => {
+    const updateFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === shellRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', updateFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', updateFullscreenState);
+  }, []);
 
   useEffect(() => {
     videoIdRef.current = videoId;
@@ -53,6 +65,11 @@ export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeU
               }
               loadedVideoIdRef.current = videoIdRef.current;
               onReadyRef.current?.(event.target);
+              timeUpdateIntervalRef.current = setInterval(() => {
+                if (typeof onTimeUpdateRef.current === 'function') {
+                  onTimeUpdateRef.current(event.target.getCurrentTime());
+                }
+              }, 1000);
             }
           },
           onStateChange: (event) => {
@@ -90,6 +107,10 @@ export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeU
     return () => {
       isCancelled = true;
       if (poll) clearInterval(poll);
+      if (timeUpdateIntervalRef.current) {
+        clearInterval(timeUpdateIntervalRef.current);
+        timeUpdateIntervalRef.current = null;
+      }
       if (playerRef.current && typeof playerRef.current.destroy === 'function') {
         playerRef.current.destroy();
         playerRef.current = null;
@@ -100,10 +121,34 @@ export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeU
     };
   }, []);
 
+  async function toggleFullscreen() {
+    const shell = shellRef.current;
+    if (!shell) return;
+
+    try {
+      if (document.fullscreenElement === shell) {
+        await document.exitFullscreen();
+      } else {
+        await shell.requestFullscreen();
+      }
+    } catch (error) {
+      console.error('Unable to change video fullscreen state:', error);
+    }
+  }
+
   return (
-    <div className={`youtube-player-shell ${className || ''}`}>
+    <div ref={shellRef} className={`youtube-player-shell ${className || ''}`}>
       <div className="youtube-player" ref={containerRef} aria-label="YouTube video player" />
       <div className="youtube-player-interaction-blocker" aria-hidden="true" />
+      <button
+        type="button"
+        className="player-fullscreen-btn"
+        onClick={toggleFullscreen}
+        aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+        aria-pressed={isFullscreen}
+      >
+        {isFullscreen ? 'Exit full screen' : 'Full screen'}
+      </button>
     </div>
   );
 }

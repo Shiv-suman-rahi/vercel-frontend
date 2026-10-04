@@ -233,6 +233,7 @@ function WatchPartyPage() {
   const [roomClosed, setRoomClosed] = useState(false);
   const [closedByCurrentUser, setClosedByCurrentUser] = useState(false);
   const isRemoteUpdateRef = useRef(false);
+  const lastReportedPlaybackTimeRef = useRef(0);
 
   const pushToast = (message, type = 'info') => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -283,6 +284,10 @@ function WatchPartyPage() {
       }
     });
 
+    roomSocket.on('participants_updated', (participants) => {
+      setRoom((currentRoom) => currentRoom ? { ...currentRoom, participants } : currentRoom);
+    });
+
     roomSocket.on('role_assigned', ({ userId, role }) => {
       if (userId === currentUserId || userId === localStorage.getItem('watchPartyUserId')) {
         setCurrentRole(String(role || '').trim().toLowerCase());
@@ -328,11 +333,13 @@ function WatchPartyPage() {
 
   const roomUrl = buildRoomLink(roomId);
   const videoId = room?.videoId;
+  const roomCurrentTime = room?.currentTime;
+  const roomPlayState = room?.playState;
 
   useEffect(() => {
-    if (!player || !room) return;
+    if (!player || !videoId) return;
 
-    const currentTime = Number(room.currentTime || 0);
+    const currentTime = Number(roomCurrentTime || 0);
     if (Math.abs(player.getCurrentTime() - currentTime) > 1.5) {
       isRemoteUpdateRef.current = true;
       player.seekTo(currentTime, true);
@@ -342,7 +349,7 @@ function WatchPartyPage() {
     }
 
     const playerState = player.getPlayerState ? player.getPlayerState() : 2;
-    if (room.playState === 'PLAYING' && playerState !== 1) {
+    if (roomPlayState === 'PLAYING' && playerState !== 1) {
       isRemoteUpdateRef.current = true;
       player.playVideo();
       setTimeout(() => {
@@ -350,14 +357,14 @@ function WatchPartyPage() {
       }, 180);
     }
 
-    if (room.playState === 'PAUSED' && playerState !== 2) {
+    if (roomPlayState === 'PAUSED' && playerState !== 2) {
       isRemoteUpdateRef.current = true;
       player.pauseVideo();
       setTimeout(() => {
         isRemoteUpdateRef.current = false;
       }, 180);
     }
-  }, [player, room]);
+  }, [player, videoId, roomCurrentTime, roomPlayState]);
 
   async function copyInviteLink() {
     try {
@@ -416,10 +423,22 @@ function WatchPartyPage() {
     playerInstance.seekTo(Number(room?.currentTime || 0), true);
   }
 
+  function handlePlaybackTimeUpdate(currentTime) {
+    if (!canControl || !socket || !Number.isFinite(currentTime)) return;
+    if (Math.abs(currentTime - lastReportedPlaybackTimeRef.current) < 1) return;
+
+    lastReportedPlaybackTimeRef.current = currentTime;
+    socket.emit('playback_progress', { roomId, time: currentTime });
+  }
+
   function handlePlayerStateChange(event) {
     const playerState = event.data;
     if (isRemoteUpdateRef.current || !socket || !room) {
       return;
+    }
+
+    if (playerState === 2 && canControl) {
+      handlePlaybackTimeUpdate(event.target.getCurrentTime());
     }
 
     if (!canControl && (playerState === 1 || playerState === 2)) {
@@ -509,7 +528,12 @@ function WatchPartyPage() {
         <main className="main-panel">
           <div className="player-card">
             {videoId ? (
-              <YouTubePlayer videoId={videoId} onReady={handleVideoReady} onStateChange={handlePlayerStateChange} />
+              <YouTubePlayer
+                videoId={videoId}
+                onReady={handleVideoReady}
+                onStateChange={handlePlayerStateChange}
+                onTimeUpdate={handlePlaybackTimeUpdate}
+              />
             ) : (
               <div className="youtube-player-loading" role="status">
                 {room ? 'Waiting for the host to choose a video...' : 'Connecting to the room...'}
