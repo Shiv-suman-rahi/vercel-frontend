@@ -556,7 +556,7 @@ function WatchPartyPage() {
                       type="text"
                       value={draftVideoUrl}
                       onChange={(event) => setDraftVideoUrl(event.target.value)}
-                      placeholder="https://youtube.com/watch?v=dQw4w9WgXcQ"
+                      placeholder="Paste a YouTube video URL"
                     />
                     <button type="submit" className="primary-btn">Load Video</button>
                   </div>
