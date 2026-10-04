@@ -18,5 +18,5 @@ npm run build
 
 ## Notes
 
-- The production fallback backend is `https://render-backend-2-uot0.onrender.com`. For local development, set `VITE_BACKEND_URL=http://localhost:3000` in your frontend `.env`.
+- Set `VITE_BACKEND_URL` in your frontend `.env` to the backend URL for the environment you are running in.
 - Full setup and architecture details are documented in the project root README and ARCHITECTURE.md files.
