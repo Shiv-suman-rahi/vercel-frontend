@@ -226,7 +226,7 @@ function WatchPartyPage() {
   const [player, setPlayer] = useState(null);
   const [status, setStatus] = useState('connecting');
   const [toastQueue, setToastQueue] = useState([]);
-  const [draftVideoUrl, setDraftVideoUrl] = useState('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  const [draftVideoUrl, setDraftVideoUrl] = useState('');
   const [currentUserId, setCurrentUserId] = useState(localStorage.getItem('watchPartyUserId') || null);
   const [currentRole, setCurrentRole] = useState('participant');
   const [roomError, setRoomError] = useState('');
