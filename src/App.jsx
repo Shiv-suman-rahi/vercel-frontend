@@ -16,63 +16,87 @@ function HomePage() {
   return (
     <div className="page-shell home-page">
       <nav className="top-nav">
-        <div className="brand">
+        <a className="brand" href="/" aria-label="YouTube Watch Party home">
           <span className="brand-mark">▶</span>
-          Watch Party
+          <span>YouTube <strong>Watch Party</strong></span>
+        </a>
+        <div className="home-nav-links">
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How it works</a>
+          <button type="button" className="secondary-btn" onClick={() => navigate('/join-room')}>Join Room</button>
+          <button type="button" className="primary-btn" onClick={() => navigate('/create-room')}>Create Room</button>
         </div>
       </nav>
 
       <section className="hero-card">
         <div className="hero-copy">
-          <p className="eyebrow">Real-time co-watching</p>
-          <h1>Watch YouTube Together in Real Time</h1>
+          <p className="eyebrow"><span className="hero-sparkle">✦</span> Real-time co-watching</p>
+          <h1>YouTube<br /><span>Watch Party</span></h1>
           <p className="lede">
-            Create a room, invite your friends, and enjoy YouTube together with synchronized playback.
+            Create a room, invite your friends, and watch your favorite videos together — wherever everyone is.
           </p>
           <div className="cta-row">
             <button type="button" className="primary-btn" onClick={() => navigate('/create-room')}>
-              Create Room
+              <span aria-hidden="true">✦</span> Create a Room
             </button>
             <button type="button" className="secondary-btn" onClick={() => navigate('/join-room')}>
-              Join Room
+              <span aria-hidden="true">↗</span> Join a Room
             </button>
+          </div>
+          <div className="home-social-proof">
+            <div className="home-avatar-stack" aria-hidden="true">
+              <span>J</span><span>M</span><span>A</span><span>K</span>
+            </div>
+            <p><strong>Good videos are better together.</strong><br />Bring your favorite people along.</p>
           </div>
         </div>
 
         <div className="hero-visual" aria-label="Watch party preview">
+          <span className="preview-float preview-float--spark" aria-hidden="true">✦</span>
+          <span className="preview-float preview-float--tag">You’re together!</span>
           <div className="preview-window">
             <div className="preview-header">
-              <span />
-              <span />
-              <span />
+              <span className="preview-brand-mark">▶</span>
+              <strong>YouTube</strong>
+              <span className="preview-window-dots"><i /><i /><i /></span>
             </div>
             <div className="preview-body">
-              <div className="preview-video" />
+              <div className="preview-video" aria-label="Video preview with play button">
+                <span className="preview-video-label">WATCH PARTY • LIVE</span>
+                <span className="preview-video-controls"><i /><i /><i /></span>
+              </div>
               <div className="preview-chat">
-                <div className="preview-user"><span className="dot green" /> Shiv</div>
-                <div className="preview-user"><span className="dot purple" /> Rahul</div>
-                <div className="preview-user"><span className="dot blue" /> Aman</div>
+                <p className="preview-chat-title">PARTY MEMBERS <span>4</span></p>
+                <div className="preview-user"><span className="preview-user-avatar preview-user-avatar--pink">S</span><span>Shiv</span><i /></div>
+                <div className="preview-user"><span className="preview-user-avatar preview-user-avatar--teal">R</span><span>Rahul</span><i /></div>
+                <div className="preview-user"><span className="preview-user-avatar preview-user-avatar--gold">A</span><span>Aman</span><i /></div>
+                <div className="preview-user"><span className="preview-user-avatar preview-user-avatar--purple">M</span><span>Maya</span><i /></div>
               </div>
             </div>
+            <div className="preview-reactions" aria-hidden="true"><span>😊</span><span>❤️</span><span>🙌</span><span>😂</span></div>
           </div>
         </div>
       </section>
 
-      <section className="features-grid">
+      <section className="features-grid" id="features" aria-label="Watch Party features">
         {[
-          ['Real-Time Sync', 'Everyone sees the same playback state.'],
-          ['Shared Rooms', 'Create a private room and invite others.'],
-          ['Role-Based Control', 'Host, moderator and participant permissions.'],
-          ['YouTube Powered', 'Watch YouTube videos together.'],
-          ['Responsive', 'Works across desktop, tablet and mobile.'],
-          ['Secure Permissions', 'The backend validates control permissions.'],
-        ].map(([title, text]) => (
-          <div className="feature-card" key={title}>
-            <div className="feature-icon">{title[0]}</div>
-            <h3>{title}</h3>
-            <p>{text}</p>
-          </div>
+          ['⚡', 'Real-Time Sync', 'Everyone watches in perfect sync.', 'violet'],
+          ['🏠', 'Room Based', 'Your own private watch space.', 'teal'],
+          ['▶', 'YouTube Powered', 'All your favorite videos, together.', 'rose'],
+          ['🛡', 'Role-Based Access', 'Host controls keep it simple.', 'blue'],
+        ].map(([icon, title, text, tone]) => (
+          <article className={`feature-card feature-card--${tone}`} key={title}>
+            <div className="feature-icon" aria-hidden="true">{icon}</div>
+            <div>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </div>
+          </article>
         ))}
+      </section>
+      <section className="home-how-it-works" id="how-it-works">
+        <p className="eyebrow">Three easy steps</p>
+        <h2>Pick a video. Invite your people. Press play.</h2>
       </section>
     </div>
   );
