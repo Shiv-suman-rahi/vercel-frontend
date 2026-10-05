@@ -1299,6 +1299,27 @@ button:disabled {
   font-size: 0.7rem;
 }
 
+.room-chat__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.room-chat__toggle {
+  padding: 5px 8px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: rgba(119, 108, 190, 0.14);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.room-chat__toggle:hover {
+  background: rgba(160, 132, 255, 0.24);
+}
+
 .room-chat__live {
   display: inline-flex;
   align-items: center;
@@ -1346,6 +1367,28 @@ button:disabled {
   color: var(--muted);
   font-size: 0.76rem;
   text-align: center;
+}
+
+.room-chat__disabled {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
+  padding: 24px 12px;
+  text-align: center;
+}
+
+.room-chat__disabled p {
+  margin: 0;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.room-chat__disabled span {
+  color: var(--muted);
+  font-size: 0.7rem;
 }
 
 .room-chat__message {

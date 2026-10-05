@@ -532,13 +532,18 @@ function WatchPartyPage() {
   }
 
   function handleChatSend({ text, type }) {
-    if (!socket || !roomId) return;
+    if (!socket || !roomId || room?.chatEnabled === false) return;
     socket.emit('chat_send', {
       roomId,
       text,
       type,
       videoTime: playbackTime,
     });
+  }
+
+  function handleChatToggle(enabled) {
+    if (!socket || !roomId || !canManage) return;
+    socket.emit('set_chat_enabled', { roomId, enabled });
   }
 
   if (roomClosed) {
@@ -656,6 +661,9 @@ function WatchPartyPage() {
             messages={chatMessages}
             currentUserId={currentUserId}
             connected={status === 'connected' && Boolean(socket?.connected)}
+            enabled={room?.chatEnabled !== false}
+            canManage={canManage}
+            onToggle={handleChatToggle}
             onSend={handleChatSend}
           />
         </aside>
