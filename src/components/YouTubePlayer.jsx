@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeUpdate, className }) {
+export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeUpdate, onDurationUpdate, className }) {
   const shellRef = useRef(null);
   const containerRef = useRef(null);
   const playerRef = useRef(null);
@@ -8,6 +8,7 @@ export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeU
   const onReadyRef = useRef(onReady);
   const onStateChangeRef = useRef(onStateChange);
   const onTimeUpdateRef = useRef(onTimeUpdate);
+  const onDurationUpdateRef = useRef(onDurationUpdate);
   const videoIdRef = useRef(videoId);
   const loadedVideoIdRef = useRef(null);
   const playerReadyRef = useRef(false);
@@ -18,6 +19,7 @@ export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeU
     onReadyRef.current = onReady;
     onStateChangeRef.current = onStateChange;
     onTimeUpdateRef.current = onTimeUpdate;
+    onDurationUpdateRef.current = onDurationUpdate;
   });
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeU
   }, []);
 
   useEffect(() => {
+    onDurationUpdateRef.current?.(0);
     videoIdRef.current = videoId;
     if (!videoId || !playerReadyRef.current || loadedVideoIdRef.current === videoId) return;
 
@@ -66,8 +69,15 @@ export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeU
               loadedVideoIdRef.current = videoIdRef.current;
               onReadyRef.current?.(event.target);
               timeUpdateIntervalRef.current = setInterval(() => {
+                const playerState = event.target.getPlayerState();
                 if (typeof onTimeUpdateRef.current === 'function') {
                   onTimeUpdateRef.current(event.target.getCurrentTime());
+                }
+                if (playerState !== -1 && playerState !== 3) {
+                  const duration = event.target.getDuration();
+                  if (Number.isFinite(duration) && duration > 0) {
+                    onDurationUpdateRef.current?.(duration);
+                  }
                 }
               }, 1000);
             }
@@ -78,6 +88,12 @@ export default function YouTubePlayer({ videoId, onReady, onStateChange, onTimeU
             }
             if (event?.target && typeof onTimeUpdateRef.current === 'function') {
               onTimeUpdateRef.current(event.target.getCurrentTime ? event.target.getCurrentTime() : 0);
+            }
+            if (event?.target && event.data !== -1 && event.data !== 3) {
+              const duration = event.target.getDuration?.();
+              if (Number.isFinite(duration) && duration > 0) {
+                onDurationUpdateRef.current?.(duration);
+              }
             }
           },
         },

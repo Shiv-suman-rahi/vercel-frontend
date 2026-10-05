@@ -224,6 +224,8 @@ function WatchPartyPage() {
   const [socket, setSocket] = useState(null);
   const [room, setRoom] = useState(null);
   const [player, setPlayer] = useState(null);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [playerDuration, setPlayerDuration] = useState(0);
   const [status, setStatus] = useState('connecting');
   const [toastQueue, setToastQueue] = useState([]);
   const [draftVideoUrl, setDraftVideoUrl] = useState('');
@@ -276,6 +278,7 @@ function WatchPartyPage() {
 
     roomSocket.on('sync_state', (nextRoom) => {
       setRoom(nextRoom);
+      setPlaybackTime(Number(nextRoom?.currentTime) || 0);
       if (nextRoom?.participants) {
         const me = nextRoom.participants.find((participant) => participant.userId === currentUserId || participant.userId === localStorage.getItem('watchPartyUserId'));
         if (me) {
@@ -424,7 +427,9 @@ function WatchPartyPage() {
   }
 
   function handlePlaybackTimeUpdate(currentTime) {
-    if (!canControl || !socket || !Number.isFinite(currentTime)) return;
+    if (!Number.isFinite(currentTime)) return;
+    setPlaybackTime(currentTime);
+    if (!canControl || !socket) return;
     if (Math.abs(currentTime - lastReportedPlaybackTimeRef.current) < 1) return;
 
     lastReportedPlaybackTimeRef.current = currentTime;
@@ -491,8 +496,6 @@ function WatchPartyPage() {
     socket.emit('remove_participant', { roomId, userId });
   }
 
-  const playerDuration = room?.duration || 1000;
-
   if (roomClosed) {
     return (
       <div className="page-shell room-page">
@@ -533,6 +536,7 @@ function WatchPartyPage() {
                 onReady={handleVideoReady}
                 onStateChange={handlePlayerStateChange}
                 onTimeUpdate={handlePlaybackTimeUpdate}
+                onDurationUpdate={setPlayerDuration}
               />
             ) : (
               <div className="youtube-player-loading" role="status">
@@ -559,14 +563,14 @@ function WatchPartyPage() {
               )}
 
               <div className="seek-block">
-                <span>{formatTime(room?.currentTime || 0)}</span>
+                <span>{formatTime(playbackTime)}</span>
                 <input
                   type="range"
                   min="0"
-                  max={playerDuration}
-                  value={room?.currentTime || 0}
+                  max={playerDuration || 1}
+                  value={Math.min(playbackTime, playerDuration || 1)}
                   onChange={handleSeekBarChange}
-                  disabled={!canControl}
+                  disabled={!canControl || playerDuration <= 0}
                 />
                 <span>{formatTime(playerDuration)}</span>
               </div>
