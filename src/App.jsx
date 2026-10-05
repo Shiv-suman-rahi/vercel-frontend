@@ -515,7 +515,7 @@ function WatchPartyPage() {
   }
 
   return (
-    <div className="page-shell room-page">
+    <div className={`page-shell room-page ${canControl ? 'room-page--host' : 'room-page--guest'}`}>
       <Toast toasts={toastQueue} onDismiss={(id) => setToastQueue((old) => old.filter((toast) => toast.id !== id))} />
 
       <RoomHeader
