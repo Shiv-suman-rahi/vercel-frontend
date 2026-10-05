@@ -5,6 +5,7 @@ import { buildRoomLink, createRoomRequest } from './services/socketService';
 import { extractYouTubeVideoId, formatTime } from './utils/youtube';
 import RoomHeader from './components/RoomHeader';
 import ParticipantList from './components/ParticipantList';
+import RoomChat from './components/RoomChat';
 import YouTubePlayer from './components/YouTubePlayer';
 import Toast from './components/Toast';
 import Badge from './components/Badge';
@@ -247,6 +248,7 @@ function WatchPartyPage() {
   const { roomId } = useParams();
   const [socket, setSocket] = useState(null);
   const [room, setRoom] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
   const [player, setPlayer] = useState(null);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [playerDuration, setPlayerDuration] = useState(0);
@@ -309,6 +311,15 @@ function WatchPartyPage() {
           setCurrentRole(String(me.role || '').trim().toLowerCase());
         }
       }
+    });
+
+    roomSocket.on('chat_message', (message) => {
+      if (!message || message.roomId !== roomId.trim().toUpperCase()) return;
+      setChatMessages((messages) => [...messages, message].slice(-100));
+    });
+
+    roomSocket.on('chat_error', ({ message }) => {
+      pushToast(message || 'Unable to send chat message.', 'error');
     });
 
     roomSocket.on('participants_updated', (participants) => {
@@ -520,6 +531,16 @@ function WatchPartyPage() {
     socket.emit('remove_participant', { roomId, userId });
   }
 
+  function handleChatSend({ text, type }) {
+    if (!socket || !roomId) return;
+    socket.emit('chat_send', {
+      roomId,
+      text,
+      type,
+      videoTime: playbackTime,
+    });
+  }
+
   if (roomClosed) {
     return (
       <div className="page-shell room-page">
@@ -622,14 +643,22 @@ function WatchPartyPage() {
           </div>
         </main>
 
-        <ParticipantList
-          participants={participantList}
-          currentUserId={currentUserId}
-          onAssignRole={handleRoleChange}
-          onRemoveParticipant={handleRemoveParticipant}
-          canManage={canManage}
-          hostId={hostId}
-        />
+        <aside className="room-sidebar">
+          <ParticipantList
+            participants={participantList}
+            currentUserId={currentUserId}
+            onAssignRole={handleRoleChange}
+            onRemoveParticipant={handleRemoveParticipant}
+            canManage={canManage}
+            hostId={hostId}
+          />
+          <RoomChat
+            messages={chatMessages}
+            currentUserId={currentUserId}
+            connected={status === 'connected' && Boolean(socket?.connected)}
+            onSend={handleChatSend}
+          />
+        </aside>
       </div>
     </div>
   );
