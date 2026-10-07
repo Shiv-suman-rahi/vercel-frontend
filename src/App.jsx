@@ -228,6 +228,7 @@ function WatchPartyPage() {
   const [roomError, setRoomError] = useState('');
   const [roomClosed, setRoomClosed] = useState(false);
   const [closedByCurrentUser, setClosedByCurrentUser] = useState(false);
+  const [removedFromRoom, setRemovedFromRoom] = useState(false);
   const [rejoinPending, setRejoinPending] = useState(false);
   const [rejoinRequests, setRejoinRequests] = useState([]);
   const isRemoteUpdateRef = useRef(false);
@@ -335,7 +336,9 @@ function WatchPartyPage() {
 
     roomSocket.on('removed_from_room', ({ message }) => {
       pushToast(message, 'error');
-      navigate('/join-room');
+      setRemovedFromRoom(true);
+      setRoom(null);
+      roomSocket.disconnect();
     });
 
     roomSocket.on('user_left', ({ username }) => {
@@ -559,6 +562,19 @@ function WatchPartyPage() {
               ? 'This room is now closed for everyone.'
               : 'This room is now closed. Thanks for watching together!'}
           </p>
+          <button type="button" className="primary-btn" onClick={() => navigate('/')}>Back to home</button>
+        </section>
+      </div>
+    );
+  }
+
+  if (removedFromRoom) {
+    return (
+      <div className="page-shell room-page">
+        <section className="room-closed-card" role="status">
+          <p className="eyebrow">Room access ended</p>
+          <h1>You were removed from the room</h1>
+          <p>The host removed you from this watch party.</p>
           <button type="button" className="primary-btn" onClick={() => navigate('/')}>Back to home</button>
         </section>
       </div>
