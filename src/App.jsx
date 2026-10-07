@@ -199,7 +199,11 @@ function JoinRoomPage() {
       }, 6000);
 
       socket.on('connect', () => {
-        socket.emit('join_room', { roomId: finalRoomId, username: name.trim() });
+        socket.emit('join_room', {
+          roomId: finalRoomId,
+          username: name.trim(),
+          userId: localStorage.getItem('watchPartyUserId') || undefined,
+        });
       });
 
       socket.on('session', ({ roomId: joinedRoomId, userId }) => {
@@ -213,6 +217,13 @@ function JoinRoomPage() {
         clearTimeout(timeout);
         socket.disconnect();
         setError(message || 'Unable to join room.');
+        setLoading(false);
+      });
+
+      socket.on('room_closed', ({ message }) => {
+        clearTimeout(timeout);
+        socket.disconnect();
+        setError(message || 'This room is closed.');
         setLoading(false);
       });
     } catch (err) {
@@ -296,6 +307,7 @@ function WatchPartyPage() {
     });
 
     roomSocket.on('session', ({ userId, role }) => {
+      setRoomError('');
       setCurrentUserId(userId);
       localStorage.setItem('watchPartyUserId', userId);
       setCurrentRole(String(role || '').trim().toLowerCase());
@@ -559,6 +571,21 @@ function WatchPartyPage() {
               : 'This room is now closed. Thanks for watching together!'}
           </p>
           <button type="button" className="primary-btn" onClick={() => navigate('/')}>Back to home</button>
+        </section>
+      </div>
+    );
+  }
+
+  if (roomError && !room) {
+    return (
+      <div className="page-shell room-page">
+        <section className="room-closed-card" role="status">
+          <p className="eyebrow">Unable to enter watch party</p>
+          <h1>Could not join room</h1>
+          <p>{roomError}</p>
+          <button type="button" className="primary-btn" onClick={() => navigate(`/join-room/${roomId}`)}>
+            Back to room entry
+          </button>
         </section>
       </div>
     );

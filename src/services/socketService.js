@@ -17,5 +17,5 @@ export async function createRoomRequest(username) {
 }
 
 export function buildRoomLink(roomId) {
-  return `${window.location.origin}/room/${roomId}`;
+  return `${window.location.origin}/join-room/${roomId}`;
 }
