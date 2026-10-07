@@ -18,6 +18,7 @@ export default function ParticipantList({ participants = [], currentUserId, onAs
             const isHost = participant.userId === hostId;
             const isCurrentUser = participant.userId === currentUserId;
             const canManageThisParticipant = canManage && !isHost && !isCurrentUser;
+            const isModerator = participant.role === 'moderator';
 
             return (
               <div key={participant.userId} className={`participant-item ${isCurrentUser ? 'is-me' : ''}`}>
@@ -38,7 +39,7 @@ export default function ParticipantList({ participants = [], currentUserId, onAs
                       Make Moderator
                     </button>
                     <button type="button" className="danger" onClick={() => onRemoveParticipant(participant.userId)}>
-                      Remove
+                      {isModerator ? 'Remove Moderator' : 'Remove Participant'}
                     </button>
                   </div>
                 )}
