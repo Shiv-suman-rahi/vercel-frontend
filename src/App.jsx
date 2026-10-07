@@ -231,6 +231,8 @@ function WatchPartyPage() {
   const [removedFromRoom, setRemovedFromRoom] = useState(false);
   const [rejoinPending, setRejoinPending] = useState(false);
   const [rejoinRequests, setRejoinRequests] = useState([]);
+  const [hostLeavePrompt, setHostLeavePrompt] = useState(false);
+  const [promotionTargetId, setPromotionTargetId] = useState('');
   const isRemoteUpdateRef = useRef(false);
   const lastReportedPlaybackTimeRef = useRef(0);
 
@@ -289,6 +291,8 @@ function WatchPartyPage() {
     roomSocket.on('rejoin_request_resolved', ({ userId }) => {
       setRejoinRequests((current) => current.filter((request) => request.userId !== userId));
     });
+
+    roomSocket.on('room_left', () => navigate('/'));
 
     roomSocket.on('session', ({ userId, role }) => {
       setRoomError('');
@@ -442,10 +446,32 @@ function WatchPartyPage() {
   }
 
   function handleLeaveRoom() {
-    if (socket && roomId) {
-      socket.emit('leave_room', { roomId });
+    if (!socket || !roomId) {
+      navigate('/');
+      return;
     }
-    navigate('/');
+
+    const otherParticipants = participantList.filter(
+      (participant) => participant.userId !== currentUserId && participant.online !== false,
+    );
+    const moderatorPresent = otherParticipants.some((participant) => participant.role === 'moderator');
+    if (canManage && otherParticipants.length > 0 && !moderatorPresent) {
+      setPromotionTargetId(otherParticipants[0].userId);
+      setHostLeavePrompt(true);
+      return;
+    }
+
+    socket.emit('leave_room', { roomId });
+  }
+
+  function handleHostLeaveChoice(promoteModerator) {
+    if (!socket || !roomId) return;
+
+    socket.emit('leave_room', {
+      roomId,
+      promoteToUserId: promoteModerator ? promotionTargetId : undefined,
+    });
+    setHostLeavePrompt(false);
   }
 
   function handleCloseRoom() {
@@ -614,6 +640,41 @@ function WatchPartyPage() {
   return (
     <div className={`page-shell room-page ${canControl ? 'room-page--host' : 'room-page--guest'}`}>
       <Toast toasts={toastQueue} onDismiss={(id) => setToastQueue((old) => old.filter((toast) => toast.id !== id))} />
+
+      {hostLeavePrompt && (
+        <div className="room-leave-overlay">
+          <section className="room-leave-dialog" role="dialog" aria-modal="true" aria-labelledby="room-leave-title">
+            <p className="eyebrow">Before you leave</p>
+            <h2 id="room-leave-title">No moderator is in this room</h2>
+            <p>Promote a participant to moderator before leaving, or close the room for everyone.</p>
+            <label htmlFor="successor-participant">Choose a participant to promote</label>
+            <select
+              id="successor-participant"
+              value={promotionTargetId}
+              onChange={(event) => setPromotionTargetId(event.target.value)}
+            >
+              {participantList
+                .filter((participant) => participant.userId !== currentUserId && participant.online !== false)
+                .map((participant) => (
+                  <option key={participant.userId} value={participant.userId}>
+                    {participant.username}
+                  </option>
+                ))}
+            </select>
+            <div className="room-leave-dialog__actions">
+              <button type="button" className="primary-btn" onClick={() => handleHostLeaveChoice(true)}>
+                Promote and leave
+              </button>
+              <button type="button" className="close-room-btn" onClick={() => handleHostLeaveChoice(false)}>
+                Close room and leave
+              </button>
+              <button type="button" className="ghost-btn" onClick={() => setHostLeavePrompt(false)}>
+                Cancel
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       <RoomHeader
         roomId={roomId}

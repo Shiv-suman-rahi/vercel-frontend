@@ -1669,6 +1669,62 @@ button:disabled {
   font-size: 0.75rem;
 }
 
+.room-leave-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 8, 20, 0.78);
+  backdrop-filter: blur(6px);
+}
+
+.room-leave-dialog {
+  width: min(100%, 480px);
+  padding: 26px;
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(35, 24, 48, 0.98), rgba(18, 24, 45, 0.98));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.room-leave-dialog h2 {
+  margin-bottom: 10px;
+}
+
+.room-leave-dialog > p:not(.eyebrow) {
+  margin-bottom: 18px;
+  color: var(--muted);
+}
+
+.room-leave-dialog label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.room-leave-dialog select {
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 11px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text);
+  font: inherit;
+}
+
+.room-leave-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.room-leave-dialog__actions button {
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+}
+
 .toast-stack {
   position: fixed;
   right: 18px;
