@@ -228,6 +228,8 @@ function WatchPartyPage() {
   const [roomError, setRoomError] = useState('');
   const [roomClosed, setRoomClosed] = useState(false);
   const [closedByCurrentUser, setClosedByCurrentUser] = useState(false);
+  const [rejoinPending, setRejoinPending] = useState(false);
+  const [rejoinRequests, setRejoinRequests] = useState([]);
   const isRemoteUpdateRef = useRef(false);
   const lastReportedPlaybackTimeRef = useRef(0);
 
@@ -263,8 +265,33 @@ function WatchPartyPage() {
       pushToast(message || 'Something went wrong.', 'error');
     });
 
+    roomSocket.on('rejoin_pending', ({ message }) => {
+      setRoomError('');
+      setRejoinPending(true);
+      pushToast(message || 'Your request to rejoin is waiting for host approval.', 'info');
+    });
+
+    roomSocket.on('rejoin_requests', (requests) => {
+      setRejoinRequests(Array.isArray(requests) ? requests : []);
+    });
+
+    roomSocket.on('rejoin_request', (request) => {
+      if (!request?.userId || !request?.username) return;
+      setRejoinRequests((current) => (
+        current.some((item) => item.userId === request.userId)
+          ? current
+          : [...current, request]
+      ));
+      pushToast(`${request.username} wants to rejoin the room.`, 'info');
+    });
+
+    roomSocket.on('rejoin_request_resolved', ({ userId }) => {
+      setRejoinRequests((current) => current.filter((request) => request.userId !== userId));
+    });
+
     roomSocket.on('session', ({ userId, role }) => {
       setRoomError('');
+      setRejoinPending(false);
       setCurrentUserId(userId);
       localStorage.setItem('watchPartyUserId', userId);
       setCurrentRole(String(role || '').trim().toLowerCase());
@@ -500,6 +527,11 @@ function WatchPartyPage() {
     socket.emit('remove_participant', { roomId, userId });
   }
 
+  function handleApproveRejoin(userId) {
+    if (!socket || !canManage) return;
+    socket.emit('approve_rejoin', { roomId, userId });
+  }
+
   function handleChatSend({ text, type }) {
     if (!socket || !roomId || room?.chatEnabled === false) return;
     socket.emit('chat_send', {
@@ -528,6 +560,21 @@ function WatchPartyPage() {
               : 'This room is now closed. Thanks for watching together!'}
           </p>
           <button type="button" className="primary-btn" onClick={() => navigate('/')}>Back to home</button>
+        </section>
+      </div>
+    );
+  }
+
+  if (rejoinPending && !room) {
+    return (
+      <div className="page-shell room-page">
+        <section className="room-closed-card" role="status">
+          <p className="eyebrow">Rejoin request sent</p>
+          <h1>Waiting for host approval</h1>
+          <p>The host has been notified that you want to rejoin. Keep this page open while they review your request.</p>
+          <button type="button" className="secondary-btn" onClick={() => navigate('/')}>
+            Leave waiting room
+          </button>
         </section>
       </div>
     );
@@ -633,6 +680,34 @@ function WatchPartyPage() {
         </main>
 
         <aside className="room-sidebar">
+          {canManage && rejoinRequests.length > 0 && (
+            <section className="participants-panel rejoin-requests-panel" aria-label="Rejoin requests">
+              <div className="panel-header">
+                <h3>Rejoin requests</h3>
+                <span>{rejoinRequests.length} waiting</span>
+              </div>
+              <div className="participants-list">
+                {rejoinRequests.map((request) => (
+                  <div className="participant-item" key={request.userId}>
+                    <div className="participant-main">
+                      <div className="avatar">{request.username.charAt(0).toUpperCase()}</div>
+                      <div>
+                        <strong>{request.username}</strong>
+                        <p>Wants to rejoin this room</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      onClick={() => handleApproveRejoin(request.userId)}
+                    >
+                      Allow
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           <ParticipantList
             participants={participantList}
             currentUserId={currentUserId}
