@@ -171,7 +171,7 @@ function JoinRoomPage() {
     }
   }, [routeRoomId]);
 
-  async function handleJoinRoom(event) {
+  function handleJoinRoom(event) {
     event.preventDefault();
     if (!name.trim()) {
       setError('Please enter your name.');
@@ -186,50 +186,7 @@ function JoinRoomPage() {
     localStorage.setItem('watchPartyName', name.trim());
     setLoading(true);
     setError('');
-
-    try {
-      const socket = io(backendUrl, {
-        transports: ['websocket'],
-      });
-
-      const timeout = setTimeout(() => {
-        socket.disconnect();
-        setError('Unable to connect to the room right now.');
-        setLoading(false);
-      }, 6000);
-
-      socket.on('connect', () => {
-        socket.emit('join_room', {
-          roomId: finalRoomId,
-          username: name.trim(),
-          userId: localStorage.getItem('watchPartyUserId') || undefined,
-        });
-      });
-
-      socket.on('session', ({ roomId: joinedRoomId, userId }) => {
-        clearTimeout(timeout);
-        localStorage.setItem('watchPartyUserId', userId);
-        socket.disconnect();
-        navigate(`/room/${joinedRoomId}`);
-      });
-
-      socket.on('error', ({ message }) => {
-        clearTimeout(timeout);
-        socket.disconnect();
-        setError(message || 'Unable to join room.');
-        setLoading(false);
-      });
-
-      socket.on('room_closed', ({ message }) => {
-        clearTimeout(timeout);
-        socket.disconnect();
-        setError(message || 'This room is closed.');
-        setLoading(false);
-      });
-    } catch (err) {
-      setError(err.message || 'Unable to join room.');
-      setLoading(false);
-    }
+    navigate(`/room/${finalRoomId}`);
   }
 
   return (
