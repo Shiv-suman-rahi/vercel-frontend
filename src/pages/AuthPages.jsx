@@ -157,14 +157,28 @@ export function SignUpPage() {
 }
 
 export function UserProfilePage() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [username, setUsername] = useState(user.username);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || '');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(location.state?.notice || '');
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+
+  async function handleLogout() {
+    setError('');
+    setLogoutLoading(true);
+    try {
+      await logout();
+      navigate('/', { replace: true, state: { notice: 'You have been signed out.' } });
+    } catch (logoutError) {
+      setError(logoutError.message);
+      setLogoutLoading(false);
+    }
+  }
 
   function selectAvatar(avatar) {
     setAvatarUrl(avatar);
@@ -311,6 +325,16 @@ export function UserProfilePage() {
               {loading ? 'Saving…' : 'Save profile'}
             </button>
           </form>
+          <div className="profile-logout">
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={handleLogout}
+              disabled={logoutLoading}
+            >
+              {logoutLoading ? 'Signing out…' : 'Log out'}
+            </button>
+          </div>
         </section>
       </main>
     </div>

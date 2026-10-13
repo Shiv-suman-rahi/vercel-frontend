@@ -405,6 +405,17 @@ button:disabled {
   box-shadow: 0 8px 22px rgba(133, 65, 255, 0.28);
 }
 
+.home-nav-links .account-menu .account-profile-link {
+  gap: 6px;
+  font-size: 0.84rem;
+}
+
+.home-nav-links .account-menu-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 0.72rem;
+}
+
 .home-page .hero-card {
   position: relative;
   grid-template-columns: 0.92fr 1.08fr;
@@ -942,23 +953,10 @@ button:disabled {
   font-weight: 800;
 }
 
-.account-logout {
-  padding: 0.55rem 0.75rem;
-}
-
-.account-menu-error {
-  position: absolute;
-  z-index: 4;
-  top: calc(100% + 5px);
-  right: 0;
-  width: max-content;
-  max-width: min(300px, 80vw);
-  padding: 8px 10px;
-  border: 1px solid rgba(248, 113, 113, 0.4);
-  border-radius: 9px;
-  background: #321b2a;
-  color: #fecaca;
-  font-size: 0.75rem;
+.profile-logout {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
 }
 
 .auth-page .top-nav {
@@ -1290,6 +1288,15 @@ button:disabled {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.room-header__actions > .secondary-btn,
+.room-header__actions > .close-room-btn,
+.room-header__actions > .ghost-btn {
+  min-height: 38px;
+  padding: 0.5rem 0.72rem;
+  border-radius: 10px;
+  font-size: 0.76rem;
 }
 
 .close-room-btn {
