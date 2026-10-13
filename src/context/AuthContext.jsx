@@ -49,7 +49,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback((values) => authenticate('/api/auth/login', values), [authenticate]);
-  const register = useCallback((values) => authenticate('/api/auth/register', values), [authenticate]);
+  const requestSignupCode = useCallback((values) => apiRequest('/api/auth/register/request-code', {
+    method: 'POST',
+    body: JSON.stringify(values),
+  }), []);
+  const verifySignupCode = useCallback((values) => authenticate('/api/auth/register/verify', values), [authenticate]);
 
   const logout = useCallback(async () => {
     await apiRequest('/api/auth/logout', { method: 'POST', csrfToken });
@@ -74,11 +78,12 @@ export function AuthProvider({ children }) {
     status,
     authError,
     login,
-    register,
+    requestSignupCode,
+    verifySignupCode,
     logout,
     refresh,
     updateProfile,
-  }), [user, csrfToken, status, authError, login, register, logout, refresh, updateProfile]);
+  }), [user, csrfToken, status, authError, login, requestSignupCode, verifySignupCode, logout, refresh, updateProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
