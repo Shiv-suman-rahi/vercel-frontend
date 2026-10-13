@@ -1,4 +1,5 @@
 import ConnectionStatus from './ConnectionStatus';
+import AccountMenu from './AccountMenu';
 
 export default function RoomHeader({ roomId, connectionStatus, onCopyLink, onLeaveRoom, isHost, onCloseRoom }) {
   return (
@@ -16,6 +17,7 @@ export default function RoomHeader({ roomId, connectionStatus, onCopyLink, onLea
       </div>
       <div className="room-header__actions">
         <ConnectionStatus status={connectionStatus} />
+        <AccountMenu />
         <button type="button" className="secondary-btn" onClick={onCopyLink}>Copy Invite Link</button>
         {isHost && <button type="button" className="close-room-btn" onClick={onCloseRoom}>Close Room</button>}
         <button type="button" className="ghost-btn" onClick={onLeaveRoom}>Leave Room</button>

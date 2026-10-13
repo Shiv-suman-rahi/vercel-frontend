@@ -1,21 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { backendUrl } from '../config';
 
 export function useSocket() {
-  const socketRef = useRef(null);
+  const [socketState, setSocketState] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
 
   useEffect(() => {
     const socket = io(backendUrl, {
       transports: ['websocket'],
+      withCredentials: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
 
-    socketRef.current = socket;
-
-    const updateConnection = (status) => setConnectionStatus(status);
+    const updateConnection = (status) => {
+      setSocketState(socket);
+      setConnectionStatus(status);
+    };
 
     socket.on('connect', () => updateConnection('connected'));
     socket.on('disconnect', () => updateConnection('disconnected'));
@@ -25,9 +27,8 @@ export function useSocket() {
 
     return () => {
       socket.disconnect();
-      socketRef.current = null;
     };
   }, []);
 
-  return { socket: socketRef.current, connectionStatus };
+  return { socket: socketState, connectionStatus };
 }

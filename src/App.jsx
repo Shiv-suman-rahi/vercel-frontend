@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { buildRoomLink, createRoomRequest } from './services/socketService';
 import { extractYouTubeVideoId, formatTime } from './utils/youtube';
@@ -10,9 +10,15 @@ import YouTubePlayer from './components/YouTubePlayer';
 import Toast from './components/Toast';
 import Badge from './components/Badge';
 import { backendUrl } from './config';
+import AccountMenu from './components/AccountMenu';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/useAuth';
+import { LoginPage, SignUpPage, UserProfilePage } from './pages/AuthPages';
+import { GuestRoute, ProtectedRoute } from './components/RouteGuards';
 
 function HomePage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <div className="page-shell home-page">
@@ -26,8 +32,10 @@ function HomePage() {
           <a href="#how-it-works">How it works</a>
           <button type="button" className="secondary-btn" onClick={() => navigate('/join-room')}>Join Room</button>
           <button type="button" className="primary-btn" onClick={() => navigate('/create-room')}>Create Room</button>
+          <AccountMenu />
         </div>
       </nav>
+      {location.state?.notice && <p className="form-success auth-notice" role="status">{location.state.notice}</p>}
 
       <section className="hero-card">
         <div className="hero-copy">
@@ -105,24 +113,17 @@ function HomePage() {
 
 function CreateRoomPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState('');
+  const { csrfToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   async function handleCreateRoom(event) {
     event.preventDefault();
-    if (!name.trim()) {
-      setError('Please enter your name.');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      const payload = await createRoomRequest(name.trim());
-      localStorage.setItem('watchPartyName', name.trim());
-      localStorage.setItem('watchPartyUserId', payload.userId);
+      const payload = await createRoomRequest(csrfToken);
       navigate(`/room/${payload.roomId}`);
     } catch (err) {
       setError(err.message || 'Unable to create room.');
@@ -137,16 +138,7 @@ function CreateRoomPage() {
         <p className="eyebrow">Create Watch Party</p>
         <h2>Create a room</h2>
 
-        <label htmlFor="name">Your Name</label>
-        <input
-          id="name"
-          type="text"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Enter your name"
-          required
-        />
-
+        <p>Your account username will be shown to other participants.</p>
         {error && <p className="form-error">{error}</p>}
 
         <button type="submit" className="primary-btn" disabled={loading}>
@@ -158,32 +150,23 @@ function CreateRoomPage() {
 }
 
 function JoinRoomPage() {
-  const navigate = useNavigate();
   const { roomId: routeRoomId } = useParams();
-  const [name, setName] = useState('');
-  const [roomId, setRoomId] = useState(routeRoomId || '');
+  return <JoinRoomForm key={routeRoomId || 'manual'} routeRoomId={routeRoomId} />;
+}
+
+function JoinRoomForm({ routeRoomId }) {
+  const navigate = useNavigate();
+  const [roomId, setRoomId] = useState(routeRoomId?.toUpperCase() || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (routeRoomId) {
-      setRoomId(routeRoomId.toUpperCase());
-    }
-  }, [routeRoomId]);
-
   function handleJoinRoom(event) {
     event.preventDefault();
-    if (!name.trim()) {
-      setError('Please enter your name.');
-      return;
-    }
     if (!roomId.trim()) {
       setError('Please enter a room code.');
       return;
     }
-
     const finalRoomId = roomId.trim().toUpperCase();
-    localStorage.setItem('watchPartyName', name.trim());
     setLoading(true);
     setError('');
     navigate(`/room/${finalRoomId}`);
@@ -194,9 +177,6 @@ function JoinRoomPage() {
       <form className="card form-card" onSubmit={handleJoinRoom}>
         <p className="eyebrow">Join Watch Party</p>
         <h2>Enter the room</h2>
-
-        <label htmlFor="join-name">Your Name</label>
-        <input id="join-name" type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" required />
 
         <label htmlFor="room-code">Room Code</label>
         <input id="room-code" type="text" value={roomId} onChange={(event) => setRoomId(event.target.value.toUpperCase())} placeholder="ABX729" required />
@@ -214,6 +194,7 @@ function JoinRoomPage() {
 function WatchPartyPage() {
   const navigate = useNavigate();
   const { roomId } = useParams();
+  const { user, refresh } = useAuth();
   const [socket, setSocket] = useState(null);
   const [room, setRoom] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
@@ -223,7 +204,7 @@ function WatchPartyPage() {
   const [status, setStatus] = useState('connecting');
   const [toastQueue, setToastQueue] = useState([]);
   const [draftVideoUrl, setDraftVideoUrl] = useState('');
-  const [currentUserId, setCurrentUserId] = useState(localStorage.getItem('watchPartyUserId') || null);
+  const currentUserId = user.id;
   const [currentRole, setCurrentRole] = useState('participant');
   const [roomError, setRoomError] = useState('');
   const [roomClosed, setRoomClosed] = useState(false);
@@ -250,18 +231,24 @@ function WatchPartyPage() {
       return undefined;
     }
 
-    const roomSocket = io(backendUrl, { transports: ['websocket'], reconnection: true });
-    setSocket(roomSocket);
-
-    const storedName = localStorage.getItem('watchPartyName') || 'Guest';
-    const storedUserId = localStorage.getItem('watchPartyUserId');
+    const roomSocket = io(backendUrl, { transports: ['websocket'], withCredentials: true, reconnectionAttempts: 5 });
 
     roomSocket.on('connect', () => {
+      setSocket(roomSocket);
       setStatus('connected');
-      roomSocket.emit('join_room', { roomId, username: storedName, userId: storedUserId || undefined });
+      roomSocket.emit('join_room', { roomId });
     });
-    roomSocket.on('disconnect', () => setStatus('disconnected'));
-    roomSocket.on('connect_error', () => setStatus('reconnecting'));
+    roomSocket.on('disconnect', (reason) => {
+      setStatus('disconnected');
+      if (reason === 'io server disconnect') refresh();
+    });
+    roomSocket.on('connect_error', (error) => {
+      setStatus('reconnecting');
+      if (error.message === 'Authentication required.') {
+        roomSocket.disconnect();
+        refresh();
+      }
+    });
     roomSocket.on('reconnect', () => setStatus('connected'));
     roomSocket.on('error', ({ message }) => {
       setRoomError(message || 'Something went wrong.');
@@ -294,11 +281,9 @@ function WatchPartyPage() {
 
     roomSocket.on('room_left', () => navigate('/'));
 
-    roomSocket.on('session', ({ userId, role }) => {
+    roomSocket.on('session', ({ role }) => {
       setRoomError('');
       setRejoinPending(false);
-      setCurrentUserId(userId);
-      localStorage.setItem('watchPartyUserId', userId);
       setCurrentRole(String(role || '').trim().toLowerCase());
       pushToast(`Joined room ${roomId}`, 'success');
     });
@@ -307,7 +292,7 @@ function WatchPartyPage() {
       setRoom(nextRoom);
       setPlaybackTime(Number(nextRoom?.currentTime) || 0);
       if (nextRoom?.participants) {
-        const me = nextRoom.participants.find((participant) => participant.userId === currentUserId || participant.userId === localStorage.getItem('watchPartyUserId'));
+        const me = nextRoom.participants.find((participant) => participant.userId === user.id);
         if (me) {
           setCurrentRole(String(me.role || '').trim().toLowerCase());
         }
@@ -328,7 +313,7 @@ function WatchPartyPage() {
     });
 
     roomSocket.on('role_assigned', ({ userId, role }) => {
-      if (userId === currentUserId || userId === localStorage.getItem('watchPartyUserId')) {
+      if (userId === user.id) {
         setCurrentRole(String(role || '').trim().toLowerCase());
       }
       pushToast(`Role updated to ${String(role || '').trim().toLowerCase()}`, 'success');
@@ -354,7 +339,7 @@ function WatchPartyPage() {
     });
 
     roomSocket.on('room_closed', ({ hostId, message }) => {
-      const activeUserId = localStorage.getItem('watchPartyUserId');
+      const activeUserId = user.id;
       setClosedByCurrentUser(Boolean(hostId && hostId === activeUserId));
       setRoomClosed(true);
       setRoom(null);
@@ -363,10 +348,10 @@ function WatchPartyPage() {
     });
 
     return () => roomSocket.disconnect();
-  }, [navigate, roomId]);
+  }, [navigate, refresh, roomId, user.id]);
 
   const participantList = room?.participants || [];
-  const currentParticipant = participantList.find((participant) => participant.userId === currentUserId || participant.userId === localStorage.getItem('watchPartyUserId')) || null;
+  const currentParticipant = participantList.find((participant) => participant.userId === user.id) || null;
   const normalizedCurrentRole = String(currentParticipant?.role || currentRole || '').trim().toLowerCase();
   const canControl = normalizedCurrentRole === 'host' || normalizedCurrentRole === 'moderator';
   const canManage = normalizedCurrentRole === 'host';
@@ -812,25 +797,24 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/create-room" element={<CreateRoomPage />} />
-      <Route path="/join-room" element={<JoinRoomPage />} />
-      <Route path="/join-room/:roomId" element={<JoinRoomPage />} />
-      <Route path="/room/:roomId" element={<WatchPartyPage />} />
+      <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+      <Route path="/signup" element={<GuestRoute><SignUpPage /></GuestRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+      <Route path="/create-room" element={<ProtectedRoute><CreateRoomPage /></ProtectedRoute>} />
+      <Route path="/join-room" element={<ProtectedRoute><JoinRoomPage /></ProtectedRoute>} />
+      <Route path="/join-room/:roomId" element={<ProtectedRoute><JoinRoomPage /></ProtectedRoute>} />
+      <Route path="/room/:roomId" element={<ProtectedRoute><WatchPartyPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
 export default function App() {
-  useEffect(() => {
-    if (!localStorage.getItem('watchPartyName')) {
-      localStorage.setItem('watchPartyName', 'Guest');
-    }
-  }, []);
-
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
