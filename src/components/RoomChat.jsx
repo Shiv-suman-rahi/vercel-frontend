@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import UserAvatar from './UserAvatar';
 import { formatTime } from '../utils/youtube';
 
 const QUICK_REACTIONS = ['❤️', '😂', '👏', '😮', '🔥'];
@@ -56,12 +57,19 @@ export default function RoomChat({ messages, currentUserId, connected, enabled, 
                     className={`room-chat__message ${isOwnMessage ? 'is-own' : ''} ${message.type === 'reaction' ? 'is-reaction' : ''}`}
                     key={message.id}
                   >
-                    <div className="room-chat__message-meta">
-                      <strong>{isOwnMessage ? 'You' : message.username}</strong>
-                      {message.role === 'host' && <span>HOST</span>}
-                      <time dateTime={message.createdAt}>{formatTime(message.videoTime)}</time>
+                    <UserAvatar
+                      avatarUrl={message.avatarUrl}
+                      username={message.username}
+                      className="room-chat__avatar"
+                    />
+                    <div className="room-chat__message-content">
+                      <div className="room-chat__message-meta">
+                        <strong>{isOwnMessage ? 'You' : message.username}</strong>
+                        {message.role === 'host' && <span>HOST</span>}
+                        <time dateTime={message.createdAt}>{formatTime(message.videoTime)}</time>
+                      </div>
+                      <p>{message.text}</p>
                     </div>
-                    <p>{message.text}</p>
                   </article>
                 );
               })

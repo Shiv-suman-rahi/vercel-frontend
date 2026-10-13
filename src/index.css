@@ -1048,6 +1048,7 @@ button:disabled {
 }
 
 .profile-summary > img,
+.profile-summary-avatar,
 .profile-avatar-fallback {
   display: grid;
   width: 68px;
@@ -1113,6 +1114,50 @@ button:disabled {
 .profile-avatar-file:focus-visible + .profile-avatar-picker {
   outline: 2px solid var(--primary);
   outline-offset: 3px;
+}
+
+.profile-avatar-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 4px;
+}
+
+.profile-avatar-preset {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--card-border);
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.24), rgba(34, 211, 238, 0.2));
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.35rem;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.profile-avatar-preset:hover {
+  transform: translateY(-2px);
+}
+
+.profile-avatar-preset.is-selected {
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.user-avatar-preset {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.profile-summary .user-avatar-preset {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 68px;
+  border-radius: 50%;
+  font-size: 2rem;
 }
 
 .room-page {
@@ -1609,6 +1654,9 @@ button:disabled {
 }
 
 .room-chat__message {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   max-width: 94%;
   padding: 8px 10px;
   border: 1px solid rgba(155, 163, 226, 0.11);
@@ -1639,6 +1687,22 @@ button:disabled {
   font-size: 0.61rem;
 }
 
+.room-chat__avatar {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  object-fit: cover;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  font-size: 0.85rem;
+}
+
+.room-chat__message-content {
+  min-width: 0;
+  flex: 1;
+}
+
 .room-chat__message-meta strong {
   color: #fff;
   font-size: 0.67rem;
@@ -1659,14 +1723,14 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
-.room-chat__message > p {
+.room-chat__message-content > p {
   margin: 0;
   color: #f1efff;
   font-size: 0.76rem;
   line-height: 1.4;
 }
 
-.room-chat__message.is-reaction > p {
+.room-chat__message.is-reaction .room-chat__message-content > p {
   font-size: 1.05rem;
   line-height: 1.2;
 }
@@ -1783,13 +1847,16 @@ button:disabled {
 }
 
 .avatar {
+  display: grid;
   width: 38px;
   height: 38px;
+  flex: 0 0 38px;
+  overflow: hidden;
   border-radius: 50%;
-  display: grid;
   place-items: center;
   background: linear-gradient(135deg, var(--primary), var(--accent));
   font-weight: 700;
+  object-fit: cover;
 }
 
 .participant-name-row {

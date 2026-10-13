@@ -17,6 +17,6 @@ export function GuestRoute({ children }) {
   const { status } = useAuth();
   if (status === 'loading') return <AuthLoading />;
   if (status === 'error') return <AuthStatusError />;
-  if (status === 'authenticated') return <Navigate to="/profile" replace />;
+  if (status === 'authenticated') return <Navigate to="/" replace />;
   return children;
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import UserAvatar from './UserAvatar';
 import { useAuth } from '../context/useAuth';
 
 export default function AccountMenu() {
@@ -29,9 +30,7 @@ export default function AccountMenu() {
   return (
     <div className="account-menu">
       <Link className="account-profile-link" to="/profile" aria-label={`Profile for ${user.username}`}>
-        {user.avatarUrl
-          ? <img src={user.avatarUrl} alt="" />
-          : <span>{user.username.charAt(0).toUpperCase()}</span>}
+        <UserAvatar avatarUrl={user.avatarUrl} username={user.username} className="account-menu-avatar" />
         <strong>{user.username}</strong>
       </Link>
       <button type="button" className="ghost-btn account-logout" onClick={handleLogout}>Log out</button>

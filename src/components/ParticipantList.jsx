@@ -1,4 +1,5 @@
 import Badge from './Badge';
+import UserAvatar from './UserAvatar';
 
 export default function ParticipantList({ participants = [], currentUserId, onAssignRole, onRemoveParticipant, canManage, hostId }) {
   return (
@@ -23,7 +24,11 @@ export default function ParticipantList({ participants = [], currentUserId, onAs
             return (
               <div key={participant.userId} className={`participant-item ${isCurrentUser ? 'is-me' : ''}`}>
                 <div className="participant-main">
-                  <div className="avatar">{participant.username?.charAt(0)?.toUpperCase() || 'U'}</div>
+                  <UserAvatar
+                    avatarUrl={participant.avatarUrl}
+                    username={participant.username}
+                    className="avatar"
+                  />
                   <div>
                     <div className="participant-name-row">
                       <strong>{participant.username}</strong>

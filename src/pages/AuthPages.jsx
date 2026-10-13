@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import AccountMenu from '../components/AccountMenu';
+import UserAvatar, { AVATAR_PRESETS } from '../components/UserAvatar';
 import { useAuth } from '../context/useAuth';
 
 function BrandNav() {
@@ -48,13 +49,12 @@ export function AuthStatusError() {
 export function LoginPage() {
   const { login, status } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (status === 'authenticated') return <Navigate to="/profile" replace />;
+  if (status === 'authenticated') return <Navigate to="/" replace />;
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -62,7 +62,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       await login({ email: email.trim(), password });
-      navigate(location.state?.from || '/profile', {
+      navigate('/', {
         replace: true,
         state: { notice: 'You are signed in.' },
       });
@@ -166,6 +166,12 @@ export function UserProfilePage() {
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
 
+  function selectAvatar(avatar) {
+    setAvatarUrl(avatar);
+    setError('');
+    setNotice('');
+  }
+
   async function handleAvatarChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -244,9 +250,13 @@ export function UserProfilePage() {
           <p className="eyebrow">Your account</p>
           <h1>Profile</h1>
           <div className="profile-summary">
-            {avatarUrl
-              ? <img src={avatarUrl} alt={`${user.username}'s avatar`} />
-              : <span className="profile-avatar-fallback">{user.username.charAt(0).toUpperCase()}</span>}
+            <UserAvatar
+              avatarUrl={avatarUrl}
+              username={username}
+              className="profile-summary-avatar"
+              fallbackClassName="profile-avatar-fallback"
+              alt={`${username}'s avatar`}
+            />
             <div>
               <strong>{user.username}</strong>
               <span>{user.email}</span>
@@ -256,7 +266,7 @@ export function UserProfilePage() {
           <form className="auth-form" onSubmit={handleSubmit}>
             <label htmlFor="profile-username">Username</label>
             <input id="profile-username" type="text" minLength="2" maxLength="30" value={username} onChange={(event) => setUsername(event.target.value)} required />
-            <label htmlFor="profile-avatar">Profile photo <span>(optional, JPG, PNG, or WebP)</span></label>
+            <label htmlFor="profile-avatar">Profile photo <span>(optional, choose an image or avatar)</span></label>
             <div className="profile-avatar-upload">
               <input
                 id="profile-avatar"
@@ -273,12 +283,27 @@ export function UserProfilePage() {
                 <button
                   type="button"
                   className="ghost-btn"
-                  onClick={() => setAvatarUrl('')}
+                  onClick={() => selectAvatar('')}
                   disabled={avatarLoading || loading}
                 >
                   Remove photo
                 </button>
               )}
+            </div>
+            <div className="profile-avatar-presets" aria-label="Choose a preset avatar">
+              {AVATAR_PRESETS.map((preset) => (
+                <button
+                  type="button"
+                  key={preset.id}
+                  className={`profile-avatar-preset ${avatarUrl === `preset:${preset.id}` ? 'is-selected' : ''}`}
+                  onClick={() => selectAvatar(`preset:${preset.id}`)}
+                  disabled={avatarLoading || loading}
+                  aria-label={`Use ${preset.name} avatar`}
+                  aria-pressed={avatarUrl === `preset:${preset.id}`}
+                >
+                  <span aria-hidden="true">{preset.emoji}</span>
+                </button>
+              ))}
             </div>
             {error && <p className="form-error" role="alert">{error}</p>}
             {notice && <p className="form-success" role="status">{notice}</p>}
