@@ -94,16 +94,13 @@ export function LoginPage() {
 }
 
 export function SignUpPage() {
-  const { requestSignupCode, verifySignupCode, status } = useAuth();
+  const { register, status } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [verificationSent, setVerificationSent] = useState(false);
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (status === 'authenticated') return <Navigate to="/" replace />;
@@ -111,23 +108,6 @@ export function SignUpPage() {
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
-    setInfo('');
-    if (verificationSent) {
-      if (!/^\d{6}$/.test(verificationCode.trim())) {
-        setError('Enter the six-digit code sent to your email.');
-        return;
-      }
-      setLoading(true);
-      try {
-        await verifySignupCode({ email: email.trim(), code: verificationCode.trim() });
-        navigate('/', { replace: true, state: { notice: 'Your account has been verified and created.' } });
-      } catch (verificationError) {
-        setError(verificationError.message);
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
     if (username.trim().length < 2 || username.trim().length > 30) {
       setError('Username must be between 2 and 30 characters.');
       return;
@@ -143,8 +123,8 @@ export function SignUpPage() {
 
     setLoading(true);
     try {
-      await requestSignupCode({ username: username.trim(), email: email.trim(), password });
-      setVerificationSent(true);
+      await register({ username: username.trim(), email: email.trim(), password });
+      navigate('/', { replace: true, state: { notice: 'Your account has been created.' } });
     } catch (signupError) {
       setError(signupError.message);
     } finally {
@@ -152,73 +132,24 @@ export function SignUpPage() {
     }
   }
 
-  async function handleResendCode() {
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      await requestSignupCode({ username: username.trim(), email: email.trim(), password });
-      setVerificationCode('');
-      setInfo('A new verification code was sent.');
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <AuthFrame
-      eyebrow={verificationSent ? 'Verify your email' : 'Start watching together'}
-      title={verificationSent ? 'Enter your verification code' : 'Create your account'}
+      eyebrow="Start watching together"
+      title="Create your account"
       footer={<>Already have an account? <Link to="/login">Log in</Link></>}
     >
       <form className="auth-form" onSubmit={handleSubmit}>
-        {verificationSent ? (
-          <>
-            <p className="auth-notice">We sent a six-digit code to <strong>{email}</strong>. It expires in 10 minutes.</p>
-            <label htmlFor="signup-code">Verification code</label>
-            <input
-              id="signup-code"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]{6}"
-              maxLength={6}
-              value={verificationCode}
-              onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-              required
-            />
-            {info && <p className="form-success" role="status">{info}</p>}
-            <button type="button" className="ghost-btn" onClick={handleResendCode} disabled={loading}>
-              Resend code
-            </button>
-            <button type="button" className="ghost-btn" onClick={() => {
-              setVerificationSent(false);
-              setVerificationCode('');
-              setError('');
-              setInfo('');
-            }}>
-              Change signup details
-            </button>
-          </>
-        ) : (
-          <>
-            <label htmlFor="signup-username">Username</label>
-            <input id="signup-username" type="text" autoComplete="username" minLength="2" maxLength="30" value={username} onChange={(event) => setUsername(event.target.value)} required />
-            <label htmlFor="signup-email">Email</label>
-            <input id="signup-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-            <label htmlFor="signup-password">Password</label>
-            <input id="signup-password" type="password" autoComplete="new-password" minLength="10" maxLength="128" value={password} onChange={(event) => setPassword(event.target.value)} required />
-            <label htmlFor="signup-confirm-password">Confirm password</label>
-            <input id="signup-confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
-          </>
-        )}
+        <label htmlFor="signup-username">Username</label>
+        <input id="signup-username" type="text" autoComplete="username" minLength="2" maxLength="30" value={username} onChange={(event) => setUsername(event.target.value)} required />
+        <label htmlFor="signup-email">Email</label>
+        <input id="signup-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+        <label htmlFor="signup-password">Password</label>
+        <input id="signup-password" type="password" autoComplete="new-password" minLength="10" maxLength="128" value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <label htmlFor="signup-confirm-password">Confirm password</label>
+        <input id="signup-confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
         {error && <p className="form-error" role="alert">{error}</p>}
         <button type="submit" className="primary-btn" disabled={loading}>
-          {loading
-            ? (verificationSent ? 'Verifying…' : 'Sending code…')
-            : (verificationSent ? 'Verify email and create account' : 'Send verification code')}
+          {loading ? 'Creating account…' : 'Create account'}
         </button>
       </form>
     </AuthFrame>
