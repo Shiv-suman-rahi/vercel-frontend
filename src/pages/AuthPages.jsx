@@ -164,6 +164,60 @@ export function UserProfilePage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(location.state?.notice || '');
   const [loading, setLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+
+  async function handleAvatarChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setError('');
+    setNotice('');
+    setAvatarLoading(true);
+    try {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        throw new Error('Choose a JPG, PNG, or WebP image.');
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('Choose an image smaller than 10 MB.');
+      }
+
+      const image = await createImageBitmap(file);
+      const canvas = document.createElement('canvas');
+      const size = 256;
+      canvas.width = size;
+      canvas.height = size;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('This browser cannot process the selected image.');
+
+      const cropSize = Math.min(image.width, image.height);
+      context.drawImage(
+        image,
+        (image.width - cropSize) / 2,
+        (image.height - cropSize) / 2,
+        cropSize,
+        cropSize,
+        0,
+        0,
+        size,
+        size,
+      );
+      image.close();
+
+      let dataUrl = canvas.toDataURL('image/webp', 0.82);
+      if (!dataUrl.startsWith('data:image/webp;')) {
+        dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      }
+      if (dataUrl.length > 240 * 1024) {
+        throw new Error('This image could not be compressed small enough. Please choose another image.');
+      }
+      setAvatarUrl(dataUrl);
+    } catch (avatarError) {
+      setError(avatarError.message || 'Unable to use that image.');
+    } finally {
+      setAvatarLoading(false);
+      event.target.value = '';
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -190,8 +244,8 @@ export function UserProfilePage() {
           <p className="eyebrow">Your account</p>
           <h1>Profile</h1>
           <div className="profile-summary">
-            {user.avatarUrl
-              ? <img src={user.avatarUrl} alt={`${user.username}'s avatar`} />
+            {avatarUrl
+              ? <img src={avatarUrl} alt={`${user.username}'s avatar`} />
               : <span className="profile-avatar-fallback">{user.username.charAt(0).toUpperCase()}</span>}
             <div>
               <strong>{user.username}</strong>
@@ -202,11 +256,33 @@ export function UserProfilePage() {
           <form className="auth-form" onSubmit={handleSubmit}>
             <label htmlFor="profile-username">Username</label>
             <input id="profile-username" type="text" minLength="2" maxLength="30" value={username} onChange={(event) => setUsername(event.target.value)} required />
-            <label htmlFor="profile-avatar">Avatar image URL <span>(optional, HTTPS)</span></label>
-            <input id="profile-avatar" type="url" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://example.com/avatar.jpg" />
+            <label htmlFor="profile-avatar">Profile photo <span>(optional, JPG, PNG, or WebP)</span></label>
+            <div className="profile-avatar-upload">
+              <input
+                id="profile-avatar"
+                className="profile-avatar-file"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleAvatarChange}
+                disabled={avatarLoading || loading}
+              />
+              <label className="profile-avatar-picker" htmlFor="profile-avatar">
+                {avatarLoading ? 'Preparing image…' : 'Choose image'}
+              </label>
+              {avatarUrl && (
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={() => setAvatarUrl('')}
+                  disabled={avatarLoading || loading}
+                >
+                  Remove photo
+                </button>
+              )}
+            </div>
             {error && <p className="form-error" role="alert">{error}</p>}
             {notice && <p className="form-success" role="status">{notice}</p>}
-            <button type="submit" className="primary-btn" disabled={loading}>
+            <button type="submit" className="primary-btn" disabled={loading || avatarLoading}>
               {loading ? 'Saving…' : 'Save profile'}
             </button>
           </form>

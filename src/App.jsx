@@ -194,7 +194,7 @@ function JoinRoomForm({ routeRoomId }) {
 function WatchPartyPage() {
   const navigate = useNavigate();
   const { roomId } = useParams();
-  const { user, refresh } = useAuth();
+  const { user, csrfToken, refresh } = useAuth();
   const [socket, setSocket] = useState(null);
   const [room, setRoom] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
@@ -231,7 +231,12 @@ function WatchPartyPage() {
       return undefined;
     }
 
-    const roomSocket = io(backendUrl, { transports: ['websocket'], withCredentials: true, reconnectionAttempts: 5 });
+    const roomSocket = io(backendUrl, {
+      transports: ['websocket'],
+      withCredentials: true,
+      auth: { csrfToken },
+      reconnectionAttempts: 5,
+    });
 
     roomSocket.on('connect', () => {
       setSocket(roomSocket);
@@ -348,7 +353,7 @@ function WatchPartyPage() {
     });
 
     return () => roomSocket.disconnect();
-  }, [navigate, refresh, roomId, user.id]);
+  }, [csrfToken, navigate, refresh, roomId, user.id]);
 
   const participantList = room?.participants || [];
   const currentParticipant = participantList.find((participant) => participant.userId === user.id) || null;

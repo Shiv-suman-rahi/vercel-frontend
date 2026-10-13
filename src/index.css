@@ -1076,6 +1076,45 @@ button:disabled {
   font-size: 1.05rem;
 }
 
+.profile-avatar-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-avatar-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.profile-avatar-picker {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.profile-avatar-picker:hover {
+  border-color: var(--primary);
+}
+
+.profile-avatar-file:focus-visible + .profile-avatar-picker {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
 .room-page {
   padding-top: 18px;
 }

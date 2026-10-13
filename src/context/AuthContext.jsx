@@ -70,6 +70,7 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(() => ({
     user,
+    csrfToken,
     status,
     authError,
     login,
@@ -77,7 +78,7 @@ export function AuthProvider({ children }) {
     logout,
     refresh,
     updateProfile,
-  }), [user, status, authError, login, register, logout, refresh, updateProfile]);
+  }), [user, csrfToken, status, authError, login, register, logout, refresh, updateProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

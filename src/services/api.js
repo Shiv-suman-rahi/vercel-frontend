@@ -1,4 +1,4 @@
-import { backendUrl } from '../config';
+import { apiUrl } from '../config';
 
 export async function apiRequest(path, { csrfToken, ...options } = {}) {
   const headers = new Headers(options.headers || {});
@@ -7,14 +7,17 @@ export async function apiRequest(path, { csrfToken, ...options } = {}) {
   }
   if (csrfToken) headers.set('X-CSRF-Token', csrfToken);
 
-  const response = await fetch(`${backendUrl}${path}`, {
+  const response = await fetch(`${apiUrl}${path}`, {
     ...options,
     headers,
     credentials: 'include',
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(payload.message || 'The request could not be completed.');
+    const message = response.status === 401
+      ? 'Your sign-in session has expired. Please log in again.'
+      : payload.message || 'The request could not be completed.';
+    const error = new Error(message);
     error.status = response.status;
     throw error;
   }

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { backendUrl } from '../config';
+import { useAuth } from '../context/useAuth';
 
 export function useSocket() {
+  const { csrfToken } = useAuth();
   const [socketState, setSocketState] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
 
@@ -10,6 +12,7 @@ export function useSocket() {
     const socket = io(backendUrl, {
       transports: ['websocket'],
       withCredentials: true,
+      auth: { csrfToken },
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
     });
@@ -28,7 +31,7 @@ export function useSocket() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [csrfToken]);
 
   return { socket: socketState, connectionStatus };
 }
